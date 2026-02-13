@@ -145,11 +145,29 @@
             <h2 class="text-2xl font-bold text-white mb-6">📝 Admin Dashboard</h2>
             
             <div class="space-y-4">
-                <!-- Newsletter -->
-                <div>
-                    <label class="block text-white font-medium mb-2">Newsletter Google Doc URL</label>
-                    <input type="url" id="newsletterUrl" class="w-full px-4 py-3" placeholder="https://docs.google.com/document/d/...">
-                    <input type="text" id="newsletterTitle" class="w-full px-4 py-3 mt-2" placeholder="Newsletter #23, 2/17/26">
+                <!-- Newsletters (Last 3) -->
+                <div class="bg-white/20 p-4 rounded-xl">
+                    <h3 class="text-white font-bold mb-3">📰 Newsletters (Most Recent 3)</h3>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-white text-sm mb-1">Newsletter #1 (Most Recent)</label>
+                            <input type="text" id="newsletter1Title" class="w-full px-4 py-2 mb-1" placeholder="Newsletter #22, 2/10/26">
+                            <input type="url" id="newsletter1Url" class="w-full px-4 py-2" placeholder="https://docs.google.com/document/d/...">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-white text-sm mb-1">Newsletter #2</label>
+                            <input type="text" id="newsletter2Title" class="w-full px-4 py-2 mb-1" placeholder="Newsletter #21, 2/3/26">
+                            <input type="url" id="newsletter2Url" class="w-full px-4 py-2" placeholder="https://docs.google.com/document/d/...">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-white text-sm mb-1">Newsletter #3 (Oldest)</label>
+                            <input type="text" id="newsletter3Title" class="w-full px-4 py-2 mb-1" placeholder="Newsletter #20, 1/27/26">
+                            <input type="url" id="newsletter3Url" class="w-full px-4 py-2" placeholder="https://docs.google.com/document/d/...">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Breakfast Menu -->
@@ -193,20 +211,6 @@
 
         <!-- Student View -->
         <div id="studentView" class="space-y-6">
-            <!-- Newsletter -->
-            <div class="card p-6">
-                <div class="flex items-center mb-4">
-                    <span class="text-4xl mr-3">📰</span>
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Weekly Newsletter</h2>
-                        <p class="text-gray-600" id="newsletterDate">Loading...</p>
-                    </div>
-                </div>
-                <button onclick="openPDF('newsletter')" class="btn bg-blue-500 text-white px-6 py-3 inline-block">
-                    📖 Read Newsletter
-                </button>
-            </div>
-
             <!-- Menus Section -->
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Breakfast -->
@@ -245,6 +249,22 @@
                 </button>
                 <p class="text-gray-600 mt-3 text-sm">See upcoming events, holidays, and important dates</p>
             </div>
+
+            <!-- Newsletter -->
+            <div class="card p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-4xl mr-3">📰</span>
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold text-gray-800">Weekly Newsletter</h2>
+                        <select id="newsletterSelector" onchange="updateSelectedNewsletter()" class="mt-2 px-4 py-2 border-2 border-gray-300 rounded-lg w-full md:w-auto">
+                            <option value="0">Loading...</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="openPDF('newsletter')" class="btn bg-blue-500 text-white px-6 py-3 inline-block">
+                    📖 Read Newsletter
+                </button>
+            </div>
         </div>
 
         <!-- Admin Toggle at Bottom -->
@@ -266,8 +286,20 @@
     <script>
         // Default data
         const defaultData = {
-            newsletterUrl: 'https://docs.google.com/document/d/1knJqjEIx5611yoBL_RK3mbclV3Kh0Gvc/edit',
-            newsletterTitle: 'Newsletter #22, 2/10/26',
+            newsletters: [
+                {
+                    title: 'Newsletter #22, 2/10/26',
+                    url: 'https://docs.google.com/document/d/1knJqjEIx5611yoBL_RK3mbclV3Kh0Gvc/edit'
+                },
+                {
+                    title: 'Newsletter #21, 2/3/26',
+                    url: 'https://docs.google.com/document/d/1ezxMwIOhrKjBrzhJBvkv3kwwrFiRUQUL/edit'
+                },
+                {
+                    title: 'Newsletter #20, 1/27/26',
+                    url: 'https://docs.google.com/document/d/1ezxMwIOhrKjBrzhJBvkv3kwwrFiRUQUL/edit'
+                }
+            ],
             breakfastUrl: 'https://resources.finalsite.net/images/v1769716199/mpsmilwaukeek12wius/p493fizod8s1d43l1jwd/FEBELBREAKFASTMENU-MilwaukeePublicSchools.pdf',
             breakfastMonth: 'February 2026',
             lunchUrl: 'https://resources.finalsite.net/images/v1769716199/mpsmilwaukeek12wius/ppfru6dis6u6oz2ixmiz/FEBELPRODLUNCHMENU-MilwaukeePublicSchools.pdf',
@@ -280,13 +312,28 @@
         };
 
         let currentData = {...defaultData};
+        let selectedNewsletterIndex = 0;
 
         // Load saved settings on page load
         async function loadSettings() {
             try {
                 const result = await window.storage.get('mps-dashboard-settings');
                 if (result && result.value) {
-                    currentData = JSON.parse(result.value);
+                    const savedData = JSON.parse(result.value);
+                    
+                    // Backwards compatibility: convert old format to new
+                    if (savedData.newsletterUrl && !savedData.newsletters) {
+                        savedData.newsletters = [
+                            {
+                                title: savedData.newsletterTitle || 'Newsletter',
+                                url: savedData.newsletterUrl
+                            },
+                            defaultData.newsletters[1],
+                            defaultData.newsletters[2]
+                        ];
+                    }
+                    
+                    currentData = savedData;
                 }
             } catch (error) {
                 console.log('Using default settings');
@@ -297,8 +344,20 @@
         // Save settings
         async function saveSettings() {
             currentData = {
-                newsletterUrl: document.getElementById('newsletterUrl').value || defaultData.newsletterUrl,
-                newsletterTitle: document.getElementById('newsletterTitle').value || defaultData.newsletterTitle,
+                newsletters: [
+                    {
+                        title: document.getElementById('newsletter1Title').value || defaultData.newsletters[0].title,
+                        url: document.getElementById('newsletter1Url').value || defaultData.newsletters[0].url
+                    },
+                    {
+                        title: document.getElementById('newsletter2Title').value || defaultData.newsletters[1].title,
+                        url: document.getElementById('newsletter2Url').value || defaultData.newsletters[1].url
+                    },
+                    {
+                        title: document.getElementById('newsletter3Title').value || defaultData.newsletters[2].title,
+                        url: document.getElementById('newsletter3Url').value || defaultData.newsletters[2].url
+                    }
+                ],
                 breakfastUrl: document.getElementById('breakfastUrl').value || defaultData.breakfastUrl,
                 breakfastMonth: document.getElementById('breakfastMonth').value || defaultData.breakfastMonth,
                 lunchUrl: document.getElementById('lunchUrl').value || defaultData.lunchUrl,
@@ -346,8 +405,15 @@
 
         // Populate admin form
         function populateAdminForm() {
-            document.getElementById('newsletterUrl').value = currentData.newsletterUrl;
-            document.getElementById('newsletterTitle').value = currentData.newsletterTitle;
+            // Newsletters
+            document.getElementById('newsletter1Title').value = currentData.newsletters[0].title;
+            document.getElementById('newsletter1Url').value = currentData.newsletters[0].url;
+            document.getElementById('newsletter2Title').value = currentData.newsletters[1].title;
+            document.getElementById('newsletter2Url').value = currentData.newsletters[1].url;
+            document.getElementById('newsletter3Title').value = currentData.newsletters[2].title;
+            document.getElementById('newsletter3Url').value = currentData.newsletters[2].url;
+            
+            // Other fields
             document.getElementById('breakfastUrl').value = currentData.breakfastUrl;
             document.getElementById('breakfastMonth').value = currentData.breakfastMonth;
             document.getElementById('lunchUrl').value = currentData.lunchUrl;
@@ -375,8 +441,16 @@
 
         // Update student view
         function updateStudentView() {
-            // Newsletter
-            document.getElementById('newsletterDate').textContent = currentData.newsletterTitle;
+            // Newsletter dropdown
+            const selector = document.getElementById('newsletterSelector');
+            selector.innerHTML = '';
+            currentData.newsletters.forEach((newsletter, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = newsletter.title;
+                selector.appendChild(option);
+            });
+            selector.value = selectedNewsletterIndex;
 
             // Breakfast
             document.getElementById('breakfastDate').textContent = currentData.breakfastMonth;
@@ -387,6 +461,11 @@
             updateMenuButtons('lunchMenus', currentData.lunchUrl, currentData.nextLunchUrl, currentData.nextMenuMonth);
         }
 
+        // Update selected newsletter
+        function updateSelectedNewsletter() {
+            selectedNewsletterIndex = parseInt(document.getElementById('newsletterSelector').value);
+        }
+
         // Open PDF in modal
         function openPDF(type) {
             const modal = document.getElementById('pdfModal');
@@ -394,7 +473,7 @@
             
             let url;
             if (type === 'newsletter') {
-                url = currentData.newsletterUrl;
+                url = currentData.newsletters[selectedNewsletterIndex].url;
             } else if (type === 'calendar') {
                 url = currentData.calendarUrl || defaultData.calendarUrl;
             }

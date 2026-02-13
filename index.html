@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPS Elementary - Student Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.2);
+        }
+        
+        .btn {
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            font-weight: 500;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .admin-panel {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        input[type="text"], input[type="url"] {
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="url"]:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        .menu-preview {
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e0;
+        }
+        
+        .pdf-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f3f4f6;
+        }
+        
+        .pdf-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            position: relative;
+            margin: 2% auto;
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: background 0.3s;
+        }
+        
+        .close-modal:hover {
+            background: rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">🎒 Student Hub</h1>
+            <p class="text-white/90 text-lg">Fernwood Montessori School</p>
+        </div>
+
+        <!-- Admin Toggle -->
+        <div class="flex justify-end mb-4">
+            <button onclick="toggleAdmin()" class="btn bg-white/20 text-white px-6 py-3 backdrop-blur-sm">
+                <span id="adminToggleText">🔑 Admin Login</span>
+            </button>
+        </div>
+
+        <!-- Admin Panel (Hidden by default) -->
+        <div id="adminPanel" class="card admin-panel p-6 mb-8 hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">📝 Admin Dashboard</h2>
+            
+            <div class="space-y-4">
+                <!-- Newsletter -->
+                <div>
+                    <label class="block text-white font-medium mb-2">Newsletter Google Doc URL</label>
+                    <input type="url" id="newsletterUrl" class="w-full px-4 py-3" placeholder="https://docs.google.com/document/d/...">
+                    <input type="text" id="newsletterTitle" class="w-full px-4 py-3 mt-2" placeholder="Newsletter #23, 2/17/26">
+                </div>
+
+                <!-- Breakfast Menu -->
+                <div>
+                    <label class="block text-white font-medium mb-2">Breakfast Menu PDF URL</label>
+                    <input type="url" id="breakfastUrl" class="w-full px-4 py-3" placeholder="https://resources.finalsite.net/...">
+                    <input type="text" id="breakfastMonth" class="w-full px-4 py-3 mt-2" placeholder="March 2026">
+                </div>
+
+                <!-- Lunch Menu -->
+                <div>
+                    <label class="block text-white font-medium mb-2">Lunch Menu PDF URL</label>
+                    <input type="url" id="lunchUrl" class="w-full px-4 py-3" placeholder="https://resources.finalsite.net/...">
+                    <input type="text" id="lunchMonth" class="w-full px-4 py-3 mt-2" placeholder="March 2026">
+                </div>
+
+                <!-- District Calendar -->
+                <div>
+                    <label class="block text-white font-medium mb-2">District Calendar PDF URL</label>
+                    <input type="url" id="calendarUrl" class="w-full px-4 py-3" placeholder="https://schools.milwaukee.k12.wi.us/...">
+                </div>
+
+                <!-- Next Month Preview (7 days before end of month) -->
+                <div class="bg-white/20 p-4 rounded-xl">
+                    <label class="flex items-center text-white font-medium mb-2">
+                        <input type="checkbox" id="showNextMonth" class="mr-2">
+                        Show next month's menus (last 7 days of month)
+                    </label>
+                    <div id="nextMonthInputs" class="space-y-2 mt-3 hidden">
+                        <input type="url" id="nextBreakfastUrl" class="w-full px-4 py-3" placeholder="Next month breakfast URL">
+                        <input type="url" id="nextLunchUrl" class="w-full px-4 py-3" placeholder="Next month lunch URL">
+                        <input type="text" id="nextMenuMonth" class="w-full px-4 py-3" placeholder="April 2026">
+                    </div>
+                </div>
+
+                <button onclick="saveSettings()" class="btn bg-white text-purple-600 px-8 py-4 w-full font-bold text-lg">
+                    💾 Save Changes
+                </button>
+            </div>
+        </div>
+
+        <!-- Student View -->
+        <div id="studentView" class="space-y-6">
+            <!-- Newsletter -->
+            <div class="card p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-4xl mr-3">📰</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Weekly Newsletter</h2>
+                        <p class="text-gray-600" id="newsletterDate">Loading...</p>
+                    </div>
+                </div>
+                <button onclick="openPDF('newsletter')" class="btn bg-blue-500 text-white px-6 py-3 inline-block">
+                    📖 Read Newsletter
+                </button>
+            </div>
+
+            <!-- Menus Section -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Breakfast -->
+                <div class="card p-6">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-3">🥞</span>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Breakfast Menu</h2>
+                            <p class="text-gray-600" id="breakfastDate">Loading...</p>
+                        </div>
+                    </div>
+                    <div id="breakfastMenus"></div>
+                </div>
+
+                <!-- Lunch -->
+                <div class="card p-6">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-3">🍕</span>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Lunch Menu</h2>
+                            <p class="text-gray-600" id="lunchDate">Loading...</p>
+                        </div>
+                    </div>
+                    <div id="lunchMenus"></div>
+                </div>
+            </div>
+
+            <!-- Calendar -->
+            <div class="card p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-4xl mr-3">📅</span>
+                    <h2 class="text-2xl font-bold text-gray-800">District Calendar</h2>
+                </div>
+                <button onclick="openPDF('calendar')" class="btn bg-green-500 text-white px-6 py-3 inline-block">
+                    🗓️ View Calendar
+                </button>
+                <p class="text-gray-600 mt-3 text-sm">See upcoming events, holidays, and important dates</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Modal -->
+    <div id="pdfModal" class="modal">
+        <span class="close-modal" onclick="closePDF()">&times;</span>
+        <div class="modal-content">
+            <iframe id="pdfViewer" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Default data
+        const defaultData = {
+            newsletterUrl: 'https://docs.google.com/document/d/1knJqjEIx5611yoBL_RK3mbclV3Kh0Gvc/edit',
+            newsletterTitle: 'Newsletter #22, 2/10/26',
+            breakfastUrl: 'https://resources.finalsite.net/images/v1769716199/mpsmilwaukeek12wius/p493fizod8s1d43l1jwd/FEBELBREAKFASTMENU-MilwaukeePublicSchools.pdf',
+            breakfastMonth: 'February 2026',
+            lunchUrl: 'https://resources.finalsite.net/images/v1769716199/mpsmilwaukeek12wius/ppfru6dis6u6oz2ixmiz/FEBELPRODLUNCHMENU-MilwaukeePublicSchools.pdf',
+            lunchMonth: 'February 2026',
+            calendarUrl: 'https://schools.milwaukee.k12.wi.us/fernwood/wp-content/uploads/sites/122/2025/10/mps-district-calendar-2526v8.pdf',
+            showNextMonth: false,
+            nextBreakfastUrl: '',
+            nextLunchUrl: '',
+            nextMenuMonth: ''
+        };
+
+        let currentData = {...defaultData};
+
+        // Load saved settings on page load
+        async function loadSettings() {
+            try {
+                const result = await window.storage.get('mps-dashboard-settings');
+                if (result && result.value) {
+                    currentData = JSON.parse(result.value);
+                }
+            } catch (error) {
+                console.log('Using default settings');
+            }
+            updateStudentView();
+        }
+
+        // Save settings
+        async function saveSettings() {
+            currentData = {
+                newsletterUrl: document.getElementById('newsletterUrl').value || defaultData.newsletterUrl,
+                newsletterTitle: document.getElementById('newsletterTitle').value || defaultData.newsletterTitle,
+                breakfastUrl: document.getElementById('breakfastUrl').value || defaultData.breakfastUrl,
+                breakfastMonth: document.getElementById('breakfastMonth').value || defaultData.breakfastMonth,
+                lunchUrl: document.getElementById('lunchUrl').value || defaultData.lunchUrl,
+                lunchMonth: document.getElementById('lunchMonth').value || defaultData.lunchMonth,
+                calendarUrl: document.getElementById('calendarUrl').value || defaultData.calendarUrl,
+                showNextMonth: document.getElementById('showNextMonth').checked,
+                nextBreakfastUrl: document.getElementById('nextBreakfastUrl').value,
+                nextLunchUrl: document.getElementById('nextLunchUrl').value,
+                nextMenuMonth: document.getElementById('nextMenuMonth').value
+            };
+
+            try {
+                await window.storage.set('mps-dashboard-settings', JSON.stringify(currentData));
+                alert('✅ Settings saved successfully!');
+                updateStudentView();
+            } catch (error) {
+                alert('❌ Error saving settings. Please try again.');
+                console.error(error);
+            }
+        }
+
+        // Toggle admin panel
+        function toggleAdmin() {
+            const panel = document.getElementById('adminPanel');
+            const toggleText = document.getElementById('adminToggleText');
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                toggleText.textContent = '👁️ Back to Student View';
+                populateAdminForm();
+            } else {
+                panel.classList.add('hidden');
+                toggleText.textContent = '🔑 Admin Login';
+            }
+        }
+
+        // Populate admin form
+        function populateAdminForm() {
+            document.getElementById('newsletterUrl').value = currentData.newsletterUrl;
+            document.getElementById('newsletterTitle').value = currentData.newsletterTitle;
+            document.getElementById('breakfastUrl').value = currentData.breakfastUrl;
+            document.getElementById('breakfastMonth').value = currentData.breakfastMonth;
+            document.getElementById('lunchUrl').value = currentData.lunchUrl;
+            document.getElementById('lunchMonth').value = currentData.lunchMonth;
+            document.getElementById('calendarUrl').value = currentData.calendarUrl || defaultData.calendarUrl;
+            document.getElementById('showNextMonth').checked = currentData.showNextMonth;
+            document.getElementById('nextBreakfastUrl').value = currentData.nextBreakfastUrl || '';
+            document.getElementById('nextLunchUrl').value = currentData.nextLunchUrl || '';
+            document.getElementById('nextMenuMonth').value = currentData.nextMenuMonth || '';
+            
+            if (currentData.showNextMonth) {
+                document.getElementById('nextMonthInputs').classList.remove('hidden');
+            }
+        }
+
+        // Show/hide next month inputs
+        document.getElementById('showNextMonth').addEventListener('change', function() {
+            const inputs = document.getElementById('nextMonthInputs');
+            if (this.checked) {
+                inputs.classList.remove('hidden');
+            } else {
+                inputs.classList.add('hidden');
+            }
+        });
+
+        // Update student view
+        function updateStudentView() {
+            // Newsletter
+            document.getElementById('newsletterDate').textContent = currentData.newsletterTitle;
+
+            // Breakfast
+            document.getElementById('breakfastDate').textContent = currentData.breakfastMonth;
+            updateMenuButtons('breakfastMenus', currentData.breakfastUrl, currentData.nextBreakfastUrl, currentData.nextMenuMonth);
+
+            // Lunch
+            document.getElementById('lunchDate').textContent = currentData.lunchMonth;
+            updateMenuButtons('lunchMenus', currentData.lunchUrl, currentData.nextLunchUrl, currentData.nextMenuMonth);
+        }
+
+        // Open PDF in modal
+        function openPDF(type) {
+            const modal = document.getElementById('pdfModal');
+            const viewer = document.getElementById('pdfViewer');
+            
+            let url;
+            if (type === 'newsletter') {
+                url = currentData.newsletterUrl;
+            } else if (type === 'calendar') {
+                url = currentData.calendarUrl || defaultData.calendarUrl;
+            }
+            
+            // For Google Docs, open in new tab (they block embedding)
+            if (url.includes('docs.google.com')) {
+                window.open(url, '_blank');
+                return;
+            }
+            
+            // For PDFs, try to embed with Google Docs viewer as fallback
+            if (url.includes('.pdf')) {
+                viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            } else {
+                viewer.src = url;
+            }
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Fallback: if iframe fails to load after 3 seconds, open in new tab
+            setTimeout(() => {
+                try {
+                    if (!viewer.contentWindow || !viewer.contentWindow.document) {
+                        closePDF();
+                        window.open(url, '_blank');
+                    }
+                } catch (e) {
+                    closePDF();
+                    window.open(url, '_blank');
+                }
+            }, 3000);
+        }
+
+        // Open menu PDF
+        function openMenuPDF(menuType, timeframe) {
+            const modal = document.getElementById('pdfModal');
+            const viewer = document.getElementById('pdfViewer');
+            
+            let url;
+            if (menuType === 'breakfast') {
+                url = timeframe === 'current' ? currentData.breakfastUrl : currentData.nextBreakfastUrl;
+            } else {
+                url = timeframe === 'current' ? currentData.lunchUrl : currentData.nextLunchUrl;
+            }
+            
+            // Use Google Docs viewer for PDFs
+            viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Fallback: if iframe fails to load after 3 seconds, open in new tab
+            setTimeout(() => {
+                try {
+                    if (!viewer.contentWindow || !viewer.contentWindow.document) {
+                        closePDF();
+                        window.open(url, '_blank');
+                    }
+                } catch (e) {
+                    closePDF();
+                    window.open(url, '_blank');
+                }
+            }, 3000);
+        }
+
+        // Close PDF modal
+        function closePDF() {
+            const modal = document.getElementById('pdfModal');
+            const viewer = document.getElementById('pdfViewer');
+            
+            modal.style.display = 'none';
+            viewer.src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('pdfModal');
+            if (event.target === modal) {
+                closePDF();
+            }
+        }
+
+        // Check if we're in last 7 days of month
+        function isLastSevenDays() {
+            const today = new Date();
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const daysUntilEnd = lastDay.getDate() - today.getDate();
+            return daysUntilEnd < 7;
+        }
+
+        // Update menu buttons
+        function updateMenuButtons(containerId, currentUrl, nextUrl, nextMonth) {
+            const container = document.getElementById(containerId);
+            const showNext = currentData.showNextMonth && isLastSevenDays() && nextUrl;
+            const menuType = containerId === 'breakfastMenus' ? 'breakfast' : 'lunch';
+            
+            let html = `
+                <button onclick="openMenuPDF('${menuType}', 'current')" class="btn bg-orange-500 text-white px-6 py-3 inline-block mb-2 w-full">
+                    📄 Current Month
+                </button>
+            `;
+            
+            if (showNext) {
+                html += `
+                    <button onclick="openMenuPDF('${menuType}', 'next')" class="btn bg-purple-500 text-white px-6 py-3 inline-block w-full">
+                        📄 Next Month (${nextMonth})
+                    </button>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Initialize
+        loadSettings();
+    </script>
+</body>
+</html>

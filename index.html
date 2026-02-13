@@ -387,28 +387,11 @@
                 return;
             }
             
-            // For PDFs, try to embed with Google Docs viewer as fallback
-            if (url.includes('.pdf')) {
-                viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-            } else {
-                viewer.src = url;
-            }
+            // For PDFs, embed directly
+            viewer.src = url;
             
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
-            
-            // Fallback: if iframe fails to load after 3 seconds, open in new tab
-            setTimeout(() => {
-                try {
-                    if (!viewer.contentWindow || !viewer.contentWindow.document) {
-                        closePDF();
-                        window.open(url, '_blank');
-                    }
-                } catch (e) {
-                    closePDF();
-                    window.open(url, '_blank');
-                }
-            }, 3000);
         }
 
         // Open menu PDF
@@ -423,23 +406,10 @@
                 url = timeframe === 'current' ? currentData.lunchUrl : currentData.nextLunchUrl;
             }
             
-            // Use Google Docs viewer for PDFs
-            viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            // Embed PDF directly
+            viewer.src = url;
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
-            
-            // Fallback: if iframe fails to load after 3 seconds, open in new tab
-            setTimeout(() => {
-                try {
-                    if (!viewer.contentWindow || !viewer.contentWindow.document) {
-                        closePDF();
-                        window.open(url, '_blank');
-                    }
-                } catch (e) {
-                    closePDF();
-                    window.open(url, '_blank');
-                }
-            }, 3000);
         }
 
         // Close PDF modal
